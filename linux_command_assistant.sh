@@ -1,0 +1,395 @@
+#!/bin/bash
+
+
+# === FUNCTION DEFINITIONS ===
+
+
+# --- Category 1: System Info & Environment ---
+
+
+show_date() { date; }
+
+
+show_hostname() { hostname; }
+
+
+show_pwd() { pwd; }
+
+
+list_files() { ls; }
+
+
+show_user() { whoami; }
+
+
+show_disk_usage() {
+  echo "Disk usage (human-readable):"
+  df -h
+}
+
+
+show_sys_info() {
+  echo "System Information:"
+  uname -a
+  lsb_release -a 2>/dev/null || echo "Distribution info not available"
+}
+
+
+show_manual() {
+  read -p "Enter command to see manual: " cmd
+  if man "$cmd" >/dev/null 2>&1; then
+        man "$cmd"
+  else
+        echo "Manual entry for '$cmd' not found."
+  fi
+}
+
+
+# --- Category 2: File Operations ---
+
+
+create_file() {
+  read -p "Enter filename to create: " fname
+  echo "Type content (Ctrl+D to finish):"
+  cat > "$fname"
+  echo "$fname created."
+}
+
+
+view_file() {
+  read -p "Enter filename to view: " fname
+  [[ -f "$fname" ]] && cat "$fname" || echo "File not found."
+}
+
+
+delete_file() {
+  read -p "Enter filename to delete: " fname
+  [[ -f "$fname" ]] && rm "$fname" && echo "Deleted $fname" || echo "File not found."
+}
+
+
+word_count() {
+  read -p "Enter filename: " fname
+  [[ -f "$fname" ]] && wc -w "$fname" || echo "File not found."
+}
+
+
+grep_file() {
+  read -p "Enter filename: " fname
+  read -p "Enter search keyword: " keyword
+  [[ -f "$fname" ]] && grep --color=always "$keyword" "$fname" || echo "File not found."
+}
+
+
+sort_file() {
+  read -p "Enter filename to sort: " fname
+  [[ -f "$fname" ]] && sort "$fname" || echo "File not found."
+}
+
+
+extract_file_lines() {
+  read -p "Enter filename: " fname
+  read -p "Enter start line number: " start
+  read -p "Enter end line number: " end
+  if [[ -f "$fname" ]]; then
+        sed -n "${start},${end}p" "$fname"
+  else
+        echo "File not found."
+  fi
+}
+
+
+display_file_properties() {
+  read -p "Enter file name: " fname
+  [[ -e "$fname" ]] && stat "$fname" || echo "File does not exist."
+}
+
+
+monitor_file_changes() {
+  read -p "Enter file to monitor (tail -f): " fname
+  [[ -f "$fname" ]] && tail -f "$fname" || echo "File not found."
+}
+
+
+# --- Category 3: File Management & Organization ---
+
+
+organize_by_extension() {
+  read -p "Enter directory to organize: " dir
+  if [[ -d "$dir" ]]; then
+        cd "$dir" || return
+        for file in *.*; do
+          [[ -f "$file" ]] || continue
+          ext="${file##*.}"
+          mkdir -p "$ext"
+          mv "$file" "$ext"/
+        done
+        echo "Files organized by extension."
+  else
+        echo "Directory not found."
+  fi
+}
+
+
+change_permissions() {
+  read -p "Enter filename: " fname
+  read -p "Enter new permission (e.g., 755): " perms
+  [[ -f "$fname" ]] && chmod "$perms" "$fname" && echo "Permissions changed." || echo "File not found."
+}
+
+
+search_files() {
+  read -p "Enter directory to search: " dir
+  read -p "Enter file name pattern (e.g., *.txt): " pattern
+  [[ -d "$dir" ]] && find "$dir" -name "$pattern" || echo "Directory not found."
+}
+
+
+batch_rename_files() {
+  read -p "Enter directory with files to rename: " dir
+  read -p "Enter extension (e.g. txt): " ext
+  read -p "Enter prefix for new files (e.g. report_): " prefix
+  if [[ -d "$dir" ]]; then
+        cd "$dir" || return
+        i=1
+        for file in *."$ext"; do
+          [[ -f "$file" ]] && mv "$file" "${prefix}${i}.${ext}" && ((i++))
+        done
+        echo "Files renamed with prefix '$prefix'"
+  else
+        echo "Directory not found."
+  fi
+}
+
+
+count_files_by_extension() {
+  read -p "Enter directory: " dir
+  if [[ -d "$dir" ]]; then
+        echo "Count of files by extension in $dir:"
+        find "$dir" -type f | sed -n 's/..*\.//p' | sort | uniq -c
+  else
+        echo "Directory not found."
+  fi
+}
+
+
+batch_text_replace() {
+  read -p "Enter directory with text files: " dir
+  read -p "Text to replace: " find
+  read -p "Replacement text: " replace
+  if [[ -d "$dir" ]]; then
+        for file in "$dir"/*.txt; do
+          [[ -f "$file" ]] && sed -i "s/$find/$replace/g" "$file"
+        done
+        echo "Replaced '$find' with '$replace' in all .txt files."
+  else
+        echo "Directory not found."
+  fi
+}
+
+
+# --- Category 4: Scripting & Compression ---
+
+
+write_run_script() {
+  read -p "Enter name of new script (e.g., myscript.sh): " script_name
+  gedit "$script_name"
+  chmod +x "$script_name"
+  read -p "Do you want to run it now? (y/n): " run_choice
+  [[ $run_choice == [yY] ]] && ./"$script_name" || echo "Execution skipped."
+}
+
+
+secure_zip_backup() {
+  read -p "Enter folder to zip: " folder
+  read -p "Enter name for zip file: " zipname
+  zip -r --encrypt "$zipname.zip" "$folder"
+  echo "Encrypted zip created: $zipname.zip"
+}
+
+
+highlight_keyword_in_file() {
+  read -p "Enter filename: " fname
+  read -p "Enter keyword to highlight: " word
+  if [[ -f "$fname" ]]; then
+        grep --color=always -i "$word" "$fname" | less -R
+  else
+        echo "File not found."
+  fi
+}
+
+
+clean_old_temp_files() {
+  read -p "Enter directory to clean: " dir
+  read -p "Delete files older than how many days? " days
+  if [[ -d "$dir" ]]; then
+        find "$dir" -type f -mtime +"$days" -exec rm -v {} \;
+        echo "Old files cleaned."
+  else
+        echo "Directory not found."
+  fi
+}
+
+
+# === MENU FUNCTIONS ===
+
+
+show_main_menu() {
+  echo ""
+  echo "========== Linux Command Assistant =========="
+  echo "Select a category:"
+  echo "1) System Info & Environment"
+  echo "2) File Operations"
+  echo "3) File Management & Organization"
+  echo "4) Scripting & Compression"
+  echo "5) Exit"
+  echo "=============================================="
+}
+
+
+show_category_menu() {
+  case $1 in
+        1)
+          echo ""
+          echo "--- System Info & Environment ---"
+          echo "1) Show current date"
+          echo "2) Show system hostname"
+          echo "3) Show current directory"
+          echo "4) List files"
+          echo "5) Show username"
+          echo "6) Show disk usage"
+          echo "7) Show system information"
+          echo "8) Show manual for a command"
+          echo "9) Back to main menu"
+          ;;
+        2)
+          echo ""
+          echo "--- File Operations ---"
+          echo "1) Create a new file"
+          echo "2) View file contents"
+          echo "3) Delete a file"
+          echo "4) Count words in a file"
+          echo "5) Use grep to search in a file"
+          echo "6) Sort a file"
+          echo "7) Extract file lines"
+          echo "8) Display file properties"
+          echo "9) Monitor file changes"
+          echo "10) Back to main menu"
+          ;;
+        3)
+          echo ""
+          echo "--- File Management & Organization ---"
+          echo "1) Organize files by extension"
+          echo "2) Change file permissions"
+          echo "3) Search files by name"
+          echo "4) Batch rename files"
+          echo "5) Count files by extension"
+          echo "6) Batch text replace"
+          echo "7) Back to main menu"
+          ;;
+        4)
+          echo ""
+          echo "--- Scripting & Compression ---"
+          echo "1) Write and run a shell script"
+          echo "2) Create encrypted zip backup"
+          echo "3) Highlight keyword in file"
+          echo "4) Clean old temporary files"
+          echo "5) Back to main menu"
+          ;;
+        *)
+          echo "Invalid category."
+          ;;
+  esac
+}
+
+
+handle_main_choice() {
+  case $1 in
+        1) category_loop 1 ;;
+        2) category_loop 2 ;;
+        3) category_loop 3 ;;
+        4) category_loop 4 ;;
+        5) echo "Goodbye!"; exit 0 ;;
+        *) echo "Invalid choice." ;;
+  esac
+}
+
+
+handle_category_choice() {
+  local category=$1
+  local choice=$2
+  case $category:$choice in
+        1:1) show_date ;;
+        1:2) show_hostname ;;
+        1:3) show_pwd ;;
+        1:4) list_files ;;
+        1:5) show_user ;;
+        1:6) show_disk_usage ;;
+        1:7) show_sys_info ;;
+        1:8) show_manual ;;
+        1:9) return 1 ;;  # back to main menu
+
+
+        2:1) create_file ;;
+        2:2) view_file ;;
+        2:3) delete_file ;;
+        2:4) word_count ;;
+        2:5) grep_file ;;
+        2:6) sort_file ;;
+        2:7) extract_file_lines ;;
+        2:8) display_file_properties ;;
+        2:9) monitor_file_changes ;;
+        2:10) return 1 ;; # back to main menu
+
+
+        3:1) organize_by_extension ;;
+        3:2) change_permissions ;;
+        3:3) search_files ;;
+        3:4) batch_rename_files ;;
+        3:5) count_files_by_extension ;;
+        3:6) batch_text_replace ;;
+        3:7) return 1 ;;  # back to main menu
+
+
+        4:1) write_run_script ;;
+        4:2) secure_zip_backup ;;
+        4:3) highlight_keyword_in_file ;;
+        4:4) clean_old_temp_files ;;
+        4:5) return 1 ;;  # back to main menu
+
+
+        *) echo "Invalid choice." ;;
+  esac
+  return 0
+}
+
+
+category_loop() {
+  local category=$1
+  while true; do
+        show_category_menu "$category"
+        read -p "Enter your choice: " choice
+        if [[ "$choice" =~ ^[0-9]+$ ]]; then
+          handle_category_choice "$category" "$choice"
+          if [[ $? -eq 1 ]]; then
+            break  # back to main menu
+          fi
+        else
+          echo "Invalid input, enter a valid number."
+        fi
+  done
+}
+
+
+# === MAIN LOOP ===
+
+
+while true; do
+  show_main_menu
+  read -p "Enter your choice: " main_choice
+  if [[ "$main_choice" =~ ^[0-9]+$ ]] && (( main_choice >= 1 && main_choice <= 5 )); then
+        handle_main_choice "$main_choice"
+  else
+        echo "Invalid input, enter a number between 1 and 5."
+  fi
+done
